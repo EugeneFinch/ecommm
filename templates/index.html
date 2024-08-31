@@ -29,6 +29,9 @@
             background-color: #f4f4f4;
             border: 1px solid #ddd;
             cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         button {
             margin-top: 10px;
@@ -40,6 +43,17 @@
         }
         button:hover {
             background-color: #0056b3;
+        }
+        .action-btn {
+            background-color: #f4f4f4;
+            color: #333;
+            border: none;
+            cursor: pointer;
+            padding: 5px;
+            margin-left: 5px;
+        }
+        .action-btn:hover {
+            background-color: #ddd;
         }
     </style>
 </head>
@@ -66,8 +80,23 @@
             productList.innerHTML = '';
             products.forEach(product => {
                 const li = document.createElement('li');
-                li.textContent = `${product.name} - $${product.price} [${product.category}]`;
-                li.onclick = () => alert(`Product: ${product.name}\nPrice: $${product.price}\nCategory: ${product.category}`);
+                li.textContent = `${product.name} - ${product.currency} ${product.price} [${product.category}]`;
+
+                // Edit button
+                const editBtn = document.createElement('button');
+                editBtn.textContent = 'Edit';
+                editBtn.className = 'action-btn';
+                editBtn.onclick = () => editProduct(product.name);
+
+                // Delete button
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = 'Delete';
+                deleteBtn.className = 'action-btn';
+                deleteBtn.onclick = () => deleteProduct(product.name);
+
+                li.appendChild(editBtn);
+                li.appendChild(deleteBtn);
+
                 productList.appendChild(li);
             });
         }
@@ -80,45 +109,179 @@
             categories.forEach(category => {
                 const li = document.createElement('li');
                 li.textContent = category.name;
-                li.onclick = () => alert(`Category: ${category.name}`);
+
+                // Edit button
+                const editBtn = document.createElement('button');
+                editBtn.textContent = 'Edit';
+                editBtn.className = 'action-btn';
+                editBtn.onclick = () => editCategory(category.name);
+
+                // Delete button
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = 'Delete';
+                deleteBtn.className = 'action-btn';
+                deleteBtn.onclick = () => deleteCategory(category.name);
+
+                li.appendChild(editBtn);
+                li.appendChild(deleteBtn);
+
                 categoryList.appendChild(li);
             });
         }
 
-        function addProduct() {
+        async function addProduct() {
             const name = prompt("Enter product name:");
             const price = prompt("Enter product price:");
             const category = prompt("Enter product category:");
+            const currency = prompt("Enter currency (USD or SGD):", "USD");
 
-            fetch('/add_product', {
+            if (!name || !price || !category || !currency) {
+                alert("All fields are required.");
+                return;
+            }
+
+            const response = await fetch('/add_product', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ name, price, category })
-            }).then(response => {
-                if (response.ok) {
-                    alert("Product added successfully!");
-                    fetchProducts();
-                }
+                body: JSON.stringify({ name, price, category, currency })
             });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert("Product added successfully!");
+                fetchProducts();
+            } else {
+                alert(`Error: ${data.error}`);
+            }
         }
 
-        function addCategory() {
+        async function editProduct(oldName) {
+            const newName = prompt("Enter new product name:", oldName);
+            const newPrice = prompt("Enter new product price:");
+            const newCategory = prompt("Enter new product category:");
+            const newCurrency = prompt("Enter currency (USD or SGD):", "USD");
+
+            if (!newName || !newPrice || !newCategory || !newCurrency) {
+                alert("All fields are required.");
+                return;
+            }
+
+            const response = await fetch(`/edit_product/${oldName}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name: newName, price: newPrice, category: newCategory, currency: newCurrency })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert("Product updated successfully!");
+                fetchProducts();
+            } else {
+                alert(`Error: ${data.error}`);
+            }
+        }
+
+        async function deleteProduct(name) {
+            if (!confirm(`Are you sure you want to delete the product "${name}"?`)) {
+                return;
+            }
+
+            const response = await fetch(`/delete_product/${name}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert("Product deleted successfully!");
+                fetchProducts();
+            } else {
+                alert(`Error: ${data.error}`);
+            }
+        }
+
+        async function addCategory() {
             const name = prompt("Enter category name:");
 
-            fetch('/add_category', {
+            if (!name) {
+                alert("Category name is required.");
+                return;
+            }
+
+            const response = await fetch('/add_category', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ name })
-            }).then(response => {
-                if (response.ok) {
-                    alert("Category added successfully!");
-                    fetchCategories();
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert("Category added successfully!");
+                fetchCategories();
+            } else {
+                alert(`Error: ${data.error}`);
+            }
+        }
+
+        async function editCategory(oldName) {
+            const newName = prompt("Enter new category name:", oldName);
+
+            if (!newName) {
+                alert("New category name is required.");
+                return;
+            }
+
+            const response = await fetch(`/edit_category/${oldName}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name: newName })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert("Category updated successfully!");
+                fetchCategories();
+            } else {
+                alert(`Error: ${data.error}`);
+            }
+        }
+
+        async function deleteCategory(name) {
+            if (!confirm(`Are you sure you want to delete the category "${name}"? This will also delete all associated products.`)) {
+                return;
+            }
+
+            const response = await fetch(`/delete_category/${name}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
                 }
             });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert("Category deleted successfully!");
+                fetchCategories();
+                fetchProducts(); // Refresh products since some may be removed
+            } else {
+                alert(`Error: ${data.error}`);
+            }
         }
 
         document.addEventListener('DOMContentLoaded', () => {
