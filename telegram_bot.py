@@ -3,51 +3,43 @@ import requests
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 
-# Your bot's token and Flask app URL
-TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')  # Store your token in an environment variable
-API_URL = 'https://ecommm.vercel.app'    # Replace with your actual Vercel URL
+# Your bot's token
+TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+
+# Flask API URL
+FLASK_APP_URL = 'https://ecommm-lime.vercel.app'
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text('Hello! I can help you manage products.')
+    await update.message.reply_text('Hello! Use /products to see all products and /categories to see all categories.')
 
-async def get_products(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    response = requests.get(f'{API_URL}/products')
-    if response.status_code == 200:
-        products = response.json()
-        if products:
-            message = "Products:\n"
-            for product in products:
-                message += f"- {product['name']} (${product['price']}) in {product['category']}\n"
-        else:
-            message = "No products available."
-        await update.message.reply_text(message)
+async def products(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    response = requests.get(f'{FLASK_APP_URL}/products')
+    products = response.json()
+    if products:
+        message = "Here are the available products:\n\n"
+        for product in products:
+            message += f"Name: {product['name']}\nPrice: ${product['price']}\nCategory: {product['category']}\n\n"
     else:
-        await update.message.reply_text('Failed to retrieve products.')
+        message = "No products available."
+    await update.message.reply_text(message)
 
-async def add_product(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    args = context.args
-    if len(args) != 3:
-        await update.message.reply_text('Usage: /add_product <name> <price> <category>')
-        return
-
-    product = {
-        'name': args[0],
-        'price': float(args[1]),
-        'category': args[2]
-    }
-
-    response = requests.post(f'{API_URL}/add_product', json=product)
-    if response.status_code == 201:
-        await update.message.reply_text(f"Product '{product['name']}' added successfully!")
+async def categories(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    response = requests.get(f'{FLASK_APP_URL}/categories')
+    categories = response.json()
+    if categories:
+        message = "Here are the available categories:\n\n"
+        for category in categories:
+            message += f"Category: {category['name']}\n"
     else:
-        await update.message.reply_text('Failed to add product.')
+        message = "No categories available."
+    await update.message.reply_text(message)
 
 def main():
     application = Application.builder().token(TOKEN).build()
 
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("get_products", get_products))
-    application.add_handler(CommandHandler("add_product", add_product))
+    application.add_handler(CommandHandler("products", products))
+    application.add_handler(CommandHandler("categories", categories))
 
     application.run_polling()
 
