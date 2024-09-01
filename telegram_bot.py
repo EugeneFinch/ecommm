@@ -1,14 +1,22 @@
 import os
 import requests
+from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 import random
 
+# Load environment variables from .env file
+load_dotenv()
+
 # Your bot's token
 TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+FLASK_APP_URL = 'https://ecommm-lime.vercel.app'  # Your Flask app URL
 
-# Flask API URL
-FLASK_APP_URL = 'https://ecommm-lime.vercel.app'
+# Print the token to verify it's being loaded
+print("Bot Token:", TOKEN)
+
+
+
 
 # Grandpa Joe Biden-inspired responses
 PRODUCT_JOKES = [
@@ -25,21 +33,12 @@ CATEGORY_JOKES = [
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if update.message:
-        await update.message.reply_text("Hey there, sport! I'm your friendly ol' bot, here to help with a dash of wisdom. Use /products to see what we've got, /categories to see where everything fits in, and /help if you need a bit of guidance. Let's see what we can find together!")
-
-async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if update.message:
-        await update.message.reply_text("Here's what I can help you with, kiddo:\n"
-                                        "- /products: List all the products we have in store.\n"
-                                        "- /categories: Show you the different categories of products.\n"
-                                        "Just pick one and ol' Grandpa Joe will tell you all about it!")
+        await update.message.reply_text("Hey there, sport! I'm your friendly ol' bot, here to help with a dash of wisdom. Use /products to see what we've got, and /categories to see where everything fits in. Let's see what we can find together!")
 
 async def products(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    try:
-        response = requests.get(f'{FLASK_APP_URL}/products')
-        response.raise_for_status()  # Raise an error for bad status codes
-        products = response.json()
-
+    response = requests.get(f'{FLASK_APP_URL}/products')
+    products = response.json()
+    if update.message:
         if products:
             message = "Well, well, let's see what we have here:\n\n"
             for product in products:
@@ -47,20 +46,12 @@ async def products(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 message += f"Name: {product['name']}\nPrice: ${product['price']}\nCategory: {product['category']}\n{joke}\n\n"
         else:
             message = "Looks like the shelves are empty, kiddo. Maybe it's time to dust off the ol' shopping list."
-
-    except requests.RequestException as e:
-        message = "Ah, looks like we're having some technical difficulties, kiddo. Maybe try again in a bit."
-        print(f"Error fetching products: {e}")
-
-    if update.message:
         await update.message.reply_text(message)
 
 async def categories(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    try:
-        response = requests.get(f'{FLASK_APP_URL}/categories')
-        response.raise_for_status()  # Raise an error for bad status codes
-        categories = response.json()
-
+    response = requests.get(f'{FLASK_APP_URL}/categories')
+    categories = response.json()
+    if update.message:
         if categories:
             message = "Ah, the categories. Here's what we used to call 'the essentials':\n\n"
             for category in categories:
@@ -68,19 +59,12 @@ async def categories(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
                 message += f"Category: {category['name']}\n{joke}\n\n"
         else:
             message = "No categories? Back in my day, we had categories for everything! Guess we'll just have to use our imagination."
-
-    except requests.RequestException as e:
-        message = "Well, looks like the wires got crossed somewhere, champ. Can't get the categories right now."
-        print(f"Error fetching categories: {e}")
-
-    if update.message:
         await update.message.reply_text(message)
 
 def main():
     application = Application.builder().token(TOKEN).build()
 
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("products", products))
     application.add_handler(CommandHandler("categories", categories))
 

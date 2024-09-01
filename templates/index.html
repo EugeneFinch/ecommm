@@ -3,147 +3,338 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Chat App</title>
+    <title>eCommerce Admin App</title>
     <style>
         body {
-            font-family: 'Roboto', sans-serif;
-            background-color: #f7f7f7;
-            color: #333;
+            font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
+            overflow: hidden;
         }
-
         h1 {
-            color: #007BFF;
-            margin-bottom: 20px;
-        }
-
-        .chat-container {
-            width: 100%;
-            max-width: 600px;
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            height: 80vh;
-        }
-
-        .chat-box {
-            flex-grow: 1;
-            overflow-y: auto;
-            margin-bottom: 20px;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            background-color: #f9f9f9;
-        }
-
-        .chat-box p {
-            margin: 10px 0;
-            padding: 10px;
-            border-radius: 6px;
-            max-width: 75%;
-            word-wrap: break-word;
-        }
-
-        .user-message {
-            background-color: #007BFF;
-            color: #fff;
-            align-self: flex-end;
-        }
-
-        .ai-response {
-            background-color: #e1e1e1;
             color: #333;
-            align-self: flex-start;
         }
-
-        .input-container {
+        .container {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px;
+        }
+        .section {
+            width: 45%;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            padding: 8px;
+            margin-bottom: 5px;
+            background-color: #f4f4f4;
+            border: 1px solid #ddd;
+            cursor: pointer;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-
-        .message-input {
-            width: 80%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            box-sizing: border-box;
-        }
-
         button {
-            width: 18%;
-            padding: 10px;
+            margin-top: 10px;
+            padding: 10px 20px;
             background-color: #007BFF;
             color: white;
             border: none;
-            border-radius: 6px;
             cursor: pointer;
-            transition: background-color 0.3s ease;
         }
-
         button:hover {
             background-color: #0056b3;
+        }
+        .action-btn {
+            background-color: #f4f4f4;
+            color: #333;
+            border: none;
+            cursor: pointer;
+            padding: 5px;
+            margin-left: 5px;
+        }
+        .action-btn:hover {
+            background-color: #ddd;
+        }
+
+        /* Splash Screen Styles */
+        #splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('/static/image.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        #splash-screen h2 {
+            margin-top: 20px;
+            font-size: 24px;
+            color: #fff; /* White text for better visibility */
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); /* Text shadow for readability */
         }
     </style>
 </head>
 <body>
-    <h1>AI Chat</h1>
-    <div class="chat-container">
-        <div class="chat-box" id="chatBox">
-            <!-- Chat messages will be displayed here -->
-        </div>
-        <div class="input-container">
-            <input type="text" id="messageInput" class="message-input" placeholder="Type your message...">
-            <button onclick="sendMessage()">Send</button>
+    <!-- Splash Screen -->
+    <div id="splash-screen">
+        <h2>Loading...</h2>
+    </div>
+
+    <!-- Main App Content -->
+    <div id="main-content" style="display:none;">
+        <h1>eCommerce Admin App</h1>
+        <div class="container">
+            <div class="section">
+                <h2>Products</h2>
+                <ul id="product-list"></ul>
+                <button onclick="addProduct()">Add New Product</button>
+            </div>
+            <div class="section">
+                <h2>Categories</h2>
+                <ul id="category-list"></ul>
+                <button onclick="addCategory()">Add New Category</button>
+            </div>
         </div>
     </div>
 
     <script>
-        // Function to send the message and receive AI response
-        async function sendMessage() {
-            const messageInput = document.getElementById('messageInput');
-            const chatBox = document.getElementById('chatBox');
+        // Function to hide the splash screen and show the main content
+        function showMainContent() {
+            document.getElementById('splash-screen').style.display = 'none';
+            document.getElementById('main-content').style.display = 'block';
+        }
 
-            const userMessage = messageInput.value;
-            if (!userMessage) return;
+        // Show the splash screen for 5 seconds, then show the main content
+        window.onload = function() {
+            setTimeout(showMainContent, 5000);  // 5000ms = 5 seconds
+        };
 
-            // Display user's message
-            const userMessageElement = document.createElement('p');
-            userMessageElement.className = 'user-message';
-            userMessageElement.textContent = `You: ${userMessage}`;
-            chatBox.appendChild(userMessageElement);
-            chatBox.scrollTop = chatBox.scrollHeight;
+        // Functions for fetching, adding, editing, and deleting products and categories
+        async function fetchProducts() {
+            const response = await fetch('/products');
+            const products = await response.json();
+            const productList = document.getElementById('product-list');
+            productList.innerHTML = '';
+            products.forEach(product => {
+                const li = document.createElement('li');
+                li.textContent = `${product.name} - ${product.currency} ${product.price} [${product.category}]`;
 
-            messageInput.value = '';  // Clear input field
+                // Edit button
+                const editBtn = document.createElement('button');
+                editBtn.textContent = 'Edit';
+                editBtn.className = 'action-btn';
+                editBtn.onclick = () => editProduct(product.name);
 
-            // Fetch AI response
-            const response = await fetch('/chat', {
+                // Delete button
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = 'Delete';
+                deleteBtn.className = 'action-btn';
+                deleteBtn.onclick = () => deleteProduct(product.name);
+
+                li.appendChild(editBtn);
+                li.appendChild(deleteBtn);
+
+                productList.appendChild(li);
+            });
+        }
+
+        async function fetchCategories() {
+            const response = await fetch('/categories');
+            const categories = await response.json();
+            const categoryList = document.getElementById('category-list');
+            categoryList.innerHTML = '';
+            categories.forEach(category => {
+                const li = document.createElement('li');
+                li.textContent = category.name;
+
+                // Edit button
+                const editBtn = document.createElement('button');
+                editBtn.textContent = 'Edit';
+                editBtn.className = 'action-btn';
+                editBtn.onclick = () => editCategory(category.name);
+
+                // Delete button
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = 'Delete';
+                deleteBtn.className = 'action-btn';
+                deleteBtn.onclick = () => deleteCategory(category.name);
+
+                li.appendChild(editBtn);
+                li.appendChild(deleteBtn);
+
+                categoryList.appendChild(li);
+            });
+        }
+
+        async function addProduct() {
+            const name = prompt("Enter product name:");
+            const price = prompt("Enter product price:");
+            const category = prompt("Enter product category:");
+            const currency = prompt("Enter currency (USD or SGD):", "USD");
+
+            if (!name || !price || !category || !currency) {
+                alert("All fields are required.");
+                return;
+            }
+
+            const response = await fetch('/add_product', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ message: userMessage }),
+                body: JSON.stringify({ name, price, category, currency })
             });
 
             const data = await response.json();
-            if (data.ai_response) {
-                // Display AI's response
-                const aiResponseElement = document.createElement('p');
-                aiResponseElement.className = 'ai-response';
-                aiResponseElement.textContent = `AI: ${data.ai_response}`;
-                chatBox.appendChild(aiResponseElement);
-                chatBox.scrollTop = chatBox.scrollHeight;
+
+            if (response.ok) {
+                alert("Product added successfully!");
+                fetchProducts();
+            } else {
+                alert(`Error: ${data.error}`);
             }
         }
+
+        async function editProduct(oldName) {
+            const newName = prompt("Enter new product name:", oldName);
+            const newPrice = prompt("Enter new product price:");
+            const newCategory = prompt("Enter new product category:");
+            const newCurrency = prompt("Enter currency (USD or SGD):", "USD");
+
+            if (!newName || !newPrice || !newCategory || !newCurrency) {
+                alert("All fields are required.");
+                return;
+            }
+
+            const response = await fetch(`/edit_product/${oldName}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name: newName, price: newPrice, category: newCategory, currency: newCurrency })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert("Product updated successfully!");
+                fetchProducts();
+            } else {
+                alert(`Error: ${data.error}`);
+            }
+        }
+
+        async function deleteProduct(name) {
+            if (!confirm(`Are you sure you want to delete the product "${name}"?`)) {
+                return;
+            }
+
+            const response = await fetch(`/delete_product/${name}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert("Product deleted successfully!");
+                fetchProducts();
+            } else {
+                alert(`Error: ${data.error}`);
+            }
+        }
+
+        async function addCategory() {
+            const name = prompt("Enter category name:");
+
+            if (!name) {
+                alert("Category name is required.");
+                return;
+            }
+
+            const response = await fetch('/add_category', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert("Category added successfully!");
+                fetchCategories();
+            } else {
+                alert(`Error: ${data.error}`);
+            }
+        }
+
+        async function editCategory(oldName) {
+            const newName = prompt("Enter new category name:", oldName);
+
+            if (!newName) {
+                alert("New category name is required.");
+                return;
+            }
+
+            const response = await fetch(`/edit_category/${oldName}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name: newName })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert("Category updated successfully!");
+                fetchCategories();
+            } else {
+                alert(`Error: ${data.error}`);
+            }
+        }
+
+        async function deleteCategory(name) {
+            if (!confirm(`Are you sure you want to delete the category "${name}"? This will also delete all associated products.`)) {
+                return;
+            }
+
+            const response = await fetch(`/delete_category/${name}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert("Category deleted successfully!");
+                fetchCategories();
+                fetchProducts(); // Refresh products since some may be removed
+            } else {
+                alert(`Error: ${data.error}`);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchProducts();
+            fetchCategories();
+        });
     </script>
 </body>
 </html>
